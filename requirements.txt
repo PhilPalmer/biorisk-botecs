@@ -1,5 +1,5 @@
 numpy
 plotly
-ipywidgets==7.6.3
-voila==0.2.6
-widgetsnbextension==3.5.1
+ipywidgets
+voila
+widgetsnbextension
