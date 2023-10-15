@@ -2,14 +2,20 @@
 # Define helper functions
 #########################
 
-from IPython.core.display import HTML
+from IPython.core.display import HTML, display
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 
+# Define URLs for sources
 klotz_2021 = "https://armscontrolcenter.org/wp-content/uploads/2017/04/LWC-paper-final-version-for-CACNP-website.pdf"
 marani_2021 = "https://www.pnas.org/doi/10.1073/pnas.2105482118"
+gtd = "https://www.start.umd.edu/gtd/"
+un = "https://www.macrotrends.net/countries/USA/united-states/population"
+esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22?_gl=1*1812zfe*_ga*MTk1NzA0MTU3My4xNjk2NzcyODA0*_ga_Z66DSTVXTJ*MTY5NzI4NTA4Ny4yLjEuMTY5NzI4NTE0MC43LjAuMA.."
+# Set default template for plots
 pio.templates.default = 'plotly_white'
 
 class Parameter:
@@ -38,6 +44,25 @@ class Params:
         fatality_rate = Parameter(0.025, "Case fatality rate (CFR). Default is 1918 influenza CFR", klotz_2021, "Klotz 2021")
         infection_rate = Parameter(0.15, "Infection rate of the pandemic. Default is % infected in typical flu season", klotz_2021, "Klotz 2021")
         colour = Parameter("#1f77b4", "Colour of the accidental epidemics for plotting", display=False)
+    
+    class Deliberate:
+        dataset = Parameter("data/globalterrorismdb_0522dist.xlsx", "Path of the Global Terrorism Database (GTD) file.", gtd, "GTD")
+        population_us_1995 = Parameter(226000000, "US population in 1995.", un, "United Nations - World Population Prospects")
+        deaths_per_attack = Parameter(2, "Number of deaths required for an attack to be considered someone wanting to cause mass harm.")
+        num_indv_capability = Parameter(30000, "Number of individuals with the capability to assemble a virus.", esvelt_2022, "Esvelt 2022")
+        deliberate_multiplier_max = Parameter(10, "Maximum value for the number of times more deaths that a deliberate pandemic would cause due to multiple releases and/or pathogens.")
+        colour = Parameter("#ff7f0e", "Colour of the deliberate pandemics for plotting", display=False)
+        # Additional parameters for capability calculations
+        years_since_start = Parameter(20, "Years since the start of the timeframe considered for capability assessment.")
+        other_labs_years = Parameter(1, "Years taken for other labs to reproduce the advancements.", esvelt_2022, "Esvelt 2022")
+        adapted_use_years = Parameter(3, "Years taken for adapted use of advancements.", esvelt_2022, "Esvelt 2022")
+        undergrad_years = Parameter(5, "Years taken for undergraduates to reproduce the advancements.", esvelt_2022, "Esvelt 2022")
+        high_school_years = Parameter(12, "Years taken for high school students to reproduce the advancements.", esvelt_2022, "Esvelt 2022")
+        other_labs_multiplier = Parameter(3, "Multiplier for the number of individuals in other labs relative to current doctorates.")
+        adapted_use_multiplier = Parameter(3, "Multiplier for the number of individuals using adapted advancements.")
+        undergrad_multiplier = Parameter(10, "Multiplier for the number of undergraduates relative to adapted use.")
+        high_school_multiplier = Parameter(10, "Multiplier for the number of high school students relative to undergraduates.")
+        us_share_of_doctorates = Parameter(1/3, "Share of US doctorates in the global context.", esvelt_2022, "Esvelt 2022")
 
     @classmethod
     def print_category(cls, category_name):
@@ -69,7 +94,7 @@ def format_number(n):
     else:
         return "{:,}".format(n)
 
-def load_and_preprocess_data(marani_xls):
+def load_and_preprocess_natural_data(marani_xls):
     """Load and preprocess the data."""
     # Load the data from "Sheet1" up to row 540
     data = pd.read_excel(marani_xls, 'Sheet1', nrows=539)
@@ -180,7 +205,7 @@ def plot_E_accidental_pandemics_hist(E_accidental_pandemics, accidental_colour):
         E_accidental_pandemics,
         nbins=100,
         labels={'value': '#accidental_pandemics'},
-        title=f"Expected number of accidental pandemics over the next century = {E_accidental_pandemics.mean():.2f}",
+        title=f"Expected number of accidental pandemics this century = {E_accidental_pandemics.mean():.2f}",
         color_discrete_sequence=[accidental_colour],
         histnorm='probability'
     )
@@ -204,7 +229,7 @@ def plot_E_accidental_deaths_hist(E_accidental_deaths, accidental_colour):
         E_accidental_deaths,
         nbins=100,
         labels={'value': '#accidental_deaths'},
-        title=f"Expected number of accidental deaths over the next century = {E_accidental_deaths.mean()/1e6:.1f} million",
+        title=f"Expected number of accidental deaths this century = {E_accidental_deaths.mean()/1e6:.1f} million",
         color_discrete_sequence=[accidental_colour],
         histnorm='probability'
     )
@@ -213,3 +238,89 @@ def plot_E_accidental_deaths_hist(E_accidental_deaths, accidental_colour):
     fig.show()
     return fig
 
+#################
+# Deliberate risk
+#################
+
+def load_and_preprocess_deliberate_data(gtd_xls, deaths_per_attack):
+    """
+    Loads and preprocesses the deliberate risk data.
+    """
+    gtd_df = pd.read_excel(gtd_xls, sheet_name='Data')
+    gtd_df = gtd_df[gtd_df["country_txt"] == "United States"]
+    gtd_df = gtd_df[gtd_df["nkill"] >= deaths_per_attack]
+    gtd_df["short_summary"] = gtd_df["summary"].str[:200] + "..."
+    return gtd_df
+
+def format_intent_fraction(frac_invd_intent):
+    reciprocal_value = 1 / frac_invd_intent
+    formatted_string = f"fraction of individuals with the intent to cause mass harm = 1 in ~{reciprocal_value/1e6:,.1f} million"
+    return formatted_string
+
+def plot_deaths_per_attack_scatter(gtd_df, deaths_per_attack, num_events, frac_invd_intent):
+    """
+    Plots a scatter plot of the provided data.
+    """
+    fig = px.scatter(
+        gtd_df,
+        x="iyear",
+        y="nkill",
+        color="attacktype1_txt",
+        hover_data=['short_summary'],
+        log_y=True,
+        labels={"iyear": "Year", "nkill": "Number of deaths", "attacktype1_txt": "Attack Type"},
+        title=f"Number of terrorist events in the US with ≥{deaths_per_attack} deaths (1970-2022) = {num_events} → \n" + format_intent_fraction(frac_invd_intent)
+    )
+    fig.show()
+    return fig
+
+def calculate_individual_capability(params):
+    """Calculate the number of individuals with capability over time based on given parameters."""
+    total_individuals = np.zeros(params.Global.num_years.val)
+    for year in range(params.Global.num_years.val):
+        if year >= params.Deliberate.years_since_start.val:
+            total_individuals[year] += params.Deliberate.num_indv_capability.val
+        if year >= params.Deliberate.years_since_start.val + params.Deliberate.other_labs_years.val:
+            total_individuals[year] += params.Deliberate.num_indv_capability.val * params.Deliberate.other_labs_multiplier.val
+        if year >= params.Deliberate.years_since_start.val + params.Deliberate.adapted_use_years.val:
+            total_individuals[year] += params.Deliberate.num_indv_capability.val * params.Deliberate.other_labs_multiplier.val * params.Deliberate.adapted_use_multiplier.val
+        if year >= params.Deliberate.years_since_start.val + params.Deliberate.undergrad_years.val:
+            total_individuals[year] += params.Deliberate.num_indv_capability.val * params.Deliberate.other_labs_multiplier.val * params.Deliberate.adapted_use_multiplier.val * params.Deliberate.undergrad_multiplier.val
+        if year >= params.Deliberate.years_since_start.val + params.Deliberate.high_school_years.val:
+            total_individuals[year] += params.Deliberate.num_indv_capability.val * params.Deliberate.other_labs_multiplier.val * params.Deliberate.adapted_use_multiplier.val * params.Deliberate.undergrad_multiplier.val * params.Deliberate.high_school_multiplier.val
+    total_individuals *= params.Deliberate.us_share_of_doctorates.val
+    return total_individuals
+
+def plot_capability_growth(params, deliberate_colour):
+    """Plot the growth of individuals with capability over time."""
+    total_individuals = calculate_individual_capability(params)
+    title_text = f"Number of Individuals with the Capability to Assemble a Virus This Century = {total_individuals[-1]:,.0f}"
+    
+    fig = go.Figure(data=[
+        go.Scatter(x=list(range(params.Global.num_years.val)), y=total_individuals, mode='lines', name='Total Individuals with Capability', line=dict(color=deliberate_colour))
+    ])
+    # Add annotations with adjusted positions
+    annotations = [
+        dict(x=params.Deliberate.years_since_start.val, y=total_individuals[params.Deliberate.years_since_start.val], xref="x", yref="y", text="Doctorates", showarrow=True, arrowhead=4, ax=0, ay=-20),
+        dict(x=params.Deliberate.years_since_start.val + params.Deliberate.other_labs_years.val, y=total_individuals[params.Deliberate.years_since_start.val + params.Deliberate.other_labs_years.val], xref="x", yref="y", text="Other Labs", showarrow=True, arrowhead=4, ax=0, ay=-50),
+        dict(x=params.Deliberate.years_since_start.val + params.Deliberate.adapted_use_years.val, y=total_individuals[params.Deliberate.years_since_start.val + params.Deliberate.adapted_use_years.val], xref="x", yref="y", text="Adapted Use", showarrow=True, arrowhead=4, ax=0, ay=-80),
+        dict(x=params.Deliberate.years_since_start.val + params.Deliberate.undergrad_years.val, y=total_individuals[params.Deliberate.years_since_start.val + params.Deliberate.undergrad_years.val], xref="x", yref="y", text="Undergraduates", showarrow=True, arrowhead=4, ax=0, ay=-110),
+        dict(x=params.Deliberate.years_since_start.val + params.Deliberate.high_school_years.val, y=total_individuals[params.Deliberate.years_since_start.val + params.Deliberate.high_school_years.val], xref="x", yref="y", text="High School Students", showarrow=True, arrowhead=4, ax=0, ay=-140)
+    ]
+    fig.update_layout(title=title_text, xaxis_title="Years", yaxis_title="Number of Individuals", annotations=annotations)
+    fig.show()
+    return fig
+
+def plot_E_deliberate_deaths_hist(E_deliberate_deaths, deliberate_colour):
+    """Plot a histogram of E_deliberate_deaths."""
+    fig = px.histogram(
+        E_deliberate_deaths,
+        nbins=100,
+        labels={'value': '#deliberate_deaths'},
+        title=f"Expected number of deliberate deaths this century = {E_deliberate_deaths.mean()/1e6:.1f} million",
+        color_discrete_sequence=[deliberate_colour],
+        histnorm='probability'
+    )
+    fig.update_layout(showlegend=False)
+    fig.show()
+    return fig
