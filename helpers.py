@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
+from scipy.stats import genpareto
 
 # Define URLs for sources
 klotz_2021 = "https://armscontrolcenter.org/wp-content/uploads/2017/04/LWC-paper-final-version-for-CACNP-website.pdf"
@@ -35,6 +36,9 @@ class Params:
 
     class Natural:
         dataset = Parameter("data/Epidemics dataset 21 March 2021.xlsx", "Path of the Marani dataset file.", marani_2021, "Marani 2021")
+        mu = Parameter(1.000e-3, "Threshold for generalized Pareto distribution (GPD).", marani_2021, "Marani 2021")
+        sigma = Parameter(0.0113, "Scale parameter for GPD.", marani_2021, "Marani 2021")
+        xi = Parameter(1.40, "Shape parameter for GPD.", marani_2021, "Marani 2021")
         colour = Parameter("#2ca02c", "Colour of the natural epidemics for plotting", display=False)
         
     class Accidental:
@@ -192,6 +196,46 @@ def plot_intensity_exceedance_probability(
                     log_y=True,
                     hover_data=hover_data_columns)
 
+    fig.update_layout(
+        title="Exceedance frequency of epidemic intensity",
+        xaxis_title="Intensity (deaths per mil/year)",
+        yaxis_title="Exceedance Probability",
+        legend_title="Disease",
+    )
+    # Update axes to use 10^x notation
+    fig.update_xaxes(type='log', exponentformat='power', showexponent='all')
+    fig.update_yaxes(type='log', exponentformat='power', showexponent='all')
+    fig.show()
+    return fig
+
+
+def plot_intensity_exceedance_probability(
+        marani_df,
+        x="Intensity (deaths per mil/year)",
+        hover_data_columns=['Location', 'Start Year', 'End Year', '# deaths (thousands)'],
+        plot_gpd=True,
+        mu=1.000e-3,  # threshold for GPD
+        sigma=0.0113,  # scale parameter from the paper
+        xi=1.40  # shape parameter from the paper
+    ):
+    """
+    Plot intensity exceedance probability and overlay GPD using parameters from the paper.
+    """
+    fig = px.scatter(marani_df, 
+                     x=x, 
+                     y="Exceedance Probability", 
+                     color="disease (total deaths)", 
+                     log_x=True, 
+                     log_y=True,
+                     hover_data=hover_data_columns)
+
+    # Generate GPD values for a range of intensity values using parameters from the paper
+    intensities = np.linspace(marani_df[x].min(), marani_df[x].max(), 1000)
+    gpd_values = 1 - genpareto.cdf(intensities - mu, xi, scale=sigma)
+    
+    # Add the GPD curve to the plot
+    if plot_gpd:
+        fig.add_trace(go.Scatter(x=intensities, y=gpd_values, mode='lines', name='GPD Fit', line=dict(color='red')))
     fig.update_layout(
         title="Exceedance frequency of epidemic intensity",
         xaxis_title="Intensity (deaths per mil/year)",
