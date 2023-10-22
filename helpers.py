@@ -39,6 +39,8 @@ class Params:
         mu = Parameter(1.000e-3, "Threshold for generalized Pareto distribution (GPD).", marani_2021, "Marani 2021")
         sigma = Parameter(0.0113, "Scale parameter for GPD.", marani_2021, "Marani 2021")
         xi = Parameter(1.40, "Shape parameter for GPD.", marani_2021, "Marani 2021")
+        p0 = Parameter(0.62, "Probability that an epidemic intensity is less than μ.", marani_2021, "Marani 2021")
+        max_intensity = Parameter(100/3, "Maximum intensity of an epidemic. Default is highest credible reports of deaths for a pandemic, 100 million deaths from 1918 influenza over 3 years.")
         colour = Parameter("#2ca02c", "Colour of the natural epidemics for plotting", display=False)
         
     class Accidental:
@@ -83,6 +85,9 @@ class Params:
                 source = f'(<a href="{param.source_link}">{param.source_description}</a>)' if param.source_link and param.source_description else ""
                 display(HTML(f"<strong>{var.ljust(max_var_length)}:</strong> {param.val} {source}<br><em>{param.description}</em><br>"))
 
+def display_text(text, size=20):
+    return display(HTML(f"<span style=\"font-size: {size}px;\">{text}</span>"))
+
 ##############
 # Natural risk
 ##############
@@ -98,6 +103,7 @@ def format_number(n):
             return "{:.1f} million".format(million_value)
     else:
         return "{:,}".format(n)
+
 
 def load_and_preprocess_natural_data(marani_xls):
     """Load and preprocess the data."""
@@ -130,6 +136,9 @@ def load_and_preprocess_natural_data(marani_xls):
     # Calculate exceedance probability
     filtered_data['Rank'] = filtered_data["Intensity (deaths per mil/year)"].rank(ascending=True)
     filtered_data["Exceedance Probability"] = 1 - filtered_data['Rank'] / len(filtered_data)
+
+    # Add a column for the duration of the outbreak
+    filtered_data["Duration"] = filtered_data["End Year"] - filtered_data["Start Year"]
 
     # Sort dataframe based on the disease total deaths number
     filtered_data = filtered_data.sort_values(by='disease_total_deaths', ascending=False)
@@ -180,71 +189,60 @@ def plot_disease_timeline(filtered_data, disease_totals, color_map):
     return fig
 
 
-def plot_intensity_exceedance_probability(
-        marani_df,
-        x = "Intensity (deaths per mil/year)",
-        hover_data_columns = ['Location', 'Start Year', 'End Year', '# deaths (thousands)'],
-    ):
-    """
-    Plot intensity exceedance probability.
-    """
-    fig = px.scatter(marani_df, 
-                    x=x, 
-                    y="Exceedance Probability", 
-                    color="disease (total deaths)", 
-                    log_x=True, 
-                    log_y=True,
-                    hover_data=hover_data_columns)
-
-    fig.update_layout(
-        title="Exceedance frequency of epidemic intensity",
-        xaxis_title="Intensity (deaths per mil/year)",
-        yaxis_title="Exceedance Probability",
-        legend_title="Disease",
-    )
-    # Update axes to use 10^x notation
-    fig.update_xaxes(type='log', exponentformat='power', showexponent='all')
-    fig.update_yaxes(type='log', exponentformat='power', showexponent='all')
-    fig.show()
-    return fig
+def compute_gpd(mu, sigma, xi, x):
+    """Compute the GPD."""
+    gpd_values = 1 - genpareto.cdf(x - mu, xi, scale=sigma)
+    return gpd_values
 
 
-def plot_intensity_exceedance_probability(
-        marani_df,
+def plot_exceedance_probability(
+        intensities=None,
+        gpd_values=None,
+        marani_df=None,
         x="Intensity (deaths per mil/year)",
+        title_text="Exceedance frequency of epidemic intensity",
         hover_data_columns=['Location', 'Start Year', 'End Year', '# deaths (thousands)'],
         plot_gpd=True,
+        log_axis=True,
         mu=1.000e-3,  # threshold for GPD
         sigma=0.0113,  # scale parameter from the paper
-        xi=1.40  # shape parameter from the paper
+        xi=1.40,  # shape parameter from the paper
+        colour="#2ca02c"
     ):
     """
     Plot intensity exceedance probability and overlay GPD using parameters from the paper.
     """
-    fig = px.scatter(marani_df, 
-                     x=x, 
-                     y="Exceedance Probability", 
-                     color="disease (total deaths)", 
-                     log_x=True, 
-                     log_y=True,
-                     hover_data=hover_data_columns)
-
-    # Generate GPD values for a range of intensity values using parameters from the paper
-    intensities = np.linspace(marani_df[x].min(), marani_df[x].max(), 1000)
-    gpd_values = 1 - genpareto.cdf(intensities - mu, xi, scale=sigma)
-    
-    # Add the GPD curve to the plot
+    # Plot scatter if data is provided
+    if marani_df is not None:
+        fig = px.scatter(marani_df, 
+                         x=x, 
+                         y="Exceedance Probability", 
+                         color="disease (total deaths)", 
+                         log_x=True, 
+                         log_y=True,
+                         hover_data=hover_data_columns)
+    else:
+        fig = go.Figure()
+        
+    # Generate GPD values and add them to the plot
+    if intensities is None:
+        intensities = np.linspace(marani_df[x].min(), marani_df[x].max(), 1000) if marani_df is not None else np.linspace(0, 0.01, 1000)
+    if gpd_values is None:
+        gpd_values = compute_gpd(mu, sigma, xi, intensities)
     if plot_gpd:
-        fig.add_trace(go.Scatter(x=intensities, y=gpd_values, mode='lines', name='GPD Fit', line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=intensities, y=gpd_values, mode='lines', name='GPD Fit', line=dict(color=colour)))
+
+    # Update titles and axes
     fig.update_layout(
-        title="Exceedance frequency of epidemic intensity",
+        title=title_text,
         xaxis_title="Intensity (deaths per mil/year)",
         yaxis_title="Exceedance Probability",
         legend_title="Disease",
     )
-    # Update axes to use 10^x notation
-    fig.update_xaxes(type='log', exponentformat='power', showexponent='all')
-    fig.update_yaxes(type='log', exponentformat='power', showexponent='all')
+    if log_axis:
+        fig.update_xaxes(type='log', exponentformat='power', showexponent='all')
+        fig.update_yaxes(type='log', exponentformat='power', showexponent='all')
+    
     fig.show()
     return fig
 
