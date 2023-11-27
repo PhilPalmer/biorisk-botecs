@@ -16,7 +16,8 @@ marani_2021 = "https://www.pnas.org/doi/10.1073/pnas.2105482118"
 gtd = "https://www.start.umd.edu/gtd/"
 un_pop_projections = "https://www.worldometers.info/world-population/world-population-projections/"
 un_pop_us = "https://www.macrotrends.net/countries/USA/united-states/population"
-esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22?_gl=1*1812zfe*_ga*MTk1NzA0MTU3My4xNjk2NzcyODA0*_ga_Z66DSTVXTJ*MTY5NzI4NTA4Ny4yLjEuMTY5NzI4NTE0MC43LjAuMA.."
+esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22"
+esvelt_2023 = "https://dam.gcsp.ch/files/doc/securing-civilisation-against-catastrophic-pandemics-gp-31"
 # Set default template for plots
 pio.templates.default = 'plotly_white'
 
@@ -30,7 +31,7 @@ class Parameter:
 
 class Params:
     class Global:
-        num_years = Parameter(76, "Number of years.")
+        num_years = Parameter(76, "Number of years. Default is until 2100.")
         population = Parameter(int(9.2e9), "World population.", un_pop_projections, "United Nations - World Population Projections")
         num_simulations = Parameter(100000, "Number of Monte Carlo simulations.")
 
@@ -45,8 +46,7 @@ class Params:
         
     class Accidental:
         P_release = Parameter(0.00246, "Probability of community release from a single facility in a single year.", klotz_2021, "Klotz 2021")
-        P_seeds_pandemic_min = Parameter(0.05, "Minimum probability that a virus release seeds a pandemic.", klotz_2021, "Klotz 2021")
-        P_seeds_pandemic_max = Parameter(0.4, "Maximum probability that a virus release seeds a pandemic.", klotz_2021, "Klotz 2021")
+        P_seeds_pandemic = Parameter((0.05, 0.4), "Probability that a virus release seeds a pandemic.", klotz_2021, "Klotz 2021")
         num_facilities = Parameter(14, "Number of facilities. Default is the number of  Highly Pathogenic Avian Influenza (HPAI) facilities", klotz_2021, "Klotz 2021")
         fatality_rate = Parameter(0.025, "Case fatality rate (CFR). Default is 1918 influenza CFR", klotz_2021, "Klotz 2021")
         infection_rate = Parameter(0.15, "Infection rate of the pandemic. Default is % infected in typical flu season", klotz_2021, "Klotz 2021")
@@ -54,22 +54,27 @@ class Params:
     
     class Deliberate:
         dataset = Parameter("data/globalterrorismdb_0522dist.xlsx", "Path of the Global Terrorism Database (GTD) file.", gtd, "GTD")
-        population_us_1995 = Parameter(226000000, "US population in 1995.", un_pop_us, "United Nations - World Population Prospects")
+        population_us_1995 = Parameter(226000000, "US population in 1995 (the midpoint of the time peroid analysed for the GTD dataset.", un_pop_us, "United Nations - World Population Prospects")
         deaths_per_attack = Parameter(2, "Number of deaths required for an attack to be considered someone wanting to cause mass harm.")
-        num_indv_capability = Parameter(30000, "Number of individuals with the capability to assemble a virus.", esvelt_2022, "Esvelt 2022")
-        deliberate_multiplier_max = Parameter(10, "Maximum value for the number of times more deaths that a deliberate pandemic would cause due to multiple releases and/or pathogens.")
+        num_indv_capability = Parameter(int(30000/20), "Number of new individuals with the capability to assemble a virus each year", esvelt_2022, "Esvelt 2022")
+        num_indv_capability_intent_last_century = Parameter(2, "Number of individuals last century who we assume would have the capability and intent if they were born this century. Deafult is 2 for members from Aum Shinrikyo and al Qaeda", esvelt_2023, "Esvelt 2023")
+        retrain_indv_multiplier = Parameter((2,4), "Multiplier for additional number of individuals who will retrain in virology.", esvelt_2022, "Esvelt 2023")
+        # retrain_indv_multiplier_min = Parameter(2, "Minimum multiplier value for additional number of individuals who will retrain in virology.", esvelt_2023, "Esvelt 2023")
+        # retrain_indv_multiplier_max = Parameter(4, "Maximum multiplier value for additional number of individuals who will retrain in virology.", esvelt_2023, "Esvelt 2023")
+        deliberate_multiplier = Parameter((1,10), "Number of times more deaths that a deliberate pandemic would cause due to multiple pathogens and/or releases etc.")
+        num_years_until_blueprints = Parameter((0,50), "Number of years until blueprints for a pandemic capable pathogen become available.")
         colour = Parameter("#ff7f0e", "Colour of the deliberate pandemics for plotting", display=False)
         # Additional parameters for capability calculations
-        years_since_start = Parameter(0, "Years since the start of the timeframe considered for capability assessment.")
-        other_labs_years = Parameter(1, "Years taken for other labs to reproduce the advancements.", esvelt_2022, "Esvelt 2022")
-        adapted_use_years = Parameter(3, "Years taken for adapted use of advancements.", esvelt_2022, "Esvelt 2022")
-        undergrad_years = Parameter(5, "Years taken for undergraduates to reproduce the advancements.", esvelt_2022, "Esvelt 2022")
-        high_school_years = Parameter(12, "Years taken for high school students to reproduce the advancements.", esvelt_2022, "Esvelt 2022")
-        other_labs_multiplier = Parameter(3, "Multiplier for the number of individuals in other labs relative to current doctorates.")
-        adapted_use_multiplier = Parameter(3, "Multiplier for the number of individuals using adapted advancements.")
-        undergrad_multiplier = Parameter(10, "Multiplier for the number of undergraduates relative to adapted use.")
-        high_school_multiplier = Parameter(10, "Multiplier for the number of high school students relative to undergraduates.")
-        us_share_of_doctorates = Parameter(1/3, "Share of US doctorates in the global context.", esvelt_2022, "Esvelt 2022")
+        years_since_start = Parameter(0, "Years since the start of the timeframe considered for capability assessment.", display=False)
+        other_labs_years = Parameter(1, "Years taken for other labs to reproduce the advancements.", esvelt_2022, "Esvelt 2022", display=False)
+        adapted_use_years = Parameter(3, "Years taken for adapted use of advancements.", esvelt_2022, "Esvelt 2022", display=False)
+        undergrad_years = Parameter(5, "Years taken for undergraduates to reproduce the advancements.", esvelt_2022, "Esvelt 2022", display=False)
+        high_school_years = Parameter(12, "Years taken for high school students to reproduce the advancements.", esvelt_2022, "Esvelt 2022", display=False)
+        other_labs_multiplier = Parameter(3, "Multiplier for the number of individuals in other labs relative to current doctorates.", display=False)
+        adapted_use_multiplier = Parameter(3, "Multiplier for the number of individuals using adapted advancements.", display=False)
+        undergrad_multiplier = Parameter(10, "Multiplier for the number of undergraduates relative to adapted use.", display=False)
+        high_school_multiplier = Parameter(10, "Multiplier for the number of high school students relative to undergraduates.", display=False)
+        us_share_of_doctorates = Parameter(1/3, "Share of US doctorates in the global context.", esvelt_2022, "Esvelt 2022", display=False)
 
     @classmethod
     def print_category(cls, category_name):
@@ -82,8 +87,9 @@ class Params:
         
         for var, param in vars(category).items():
             if not var.startswith("_") and param.display:
+                val = param.val if not isinstance(param.val, tuple) else f"{param.val[0]} - {param.val[1]}"
                 source = f'(<a href="{param.source_link}">{param.source_description}</a>)' if param.source_link and param.source_description else ""
-                display(HTML(f"<strong>{var.ljust(max_var_length)}:</strong> {param.val} {source}<br><em>{param.description}</em><br>"))
+                display(HTML(f"<strong>{var.ljust(max_var_length)}:</strong> {val} {source}<br><em>{param.description}</em><br>"))
 
 def display_text(text, size=20):
     return display(HTML(f"<span style=\"font-size: {size}px;\">{text}</span>"))
@@ -359,7 +365,7 @@ def plot_E_accidental_deaths_hist(E_accidental_deaths, accidental_colour):
         E_accidental_deaths,
         nbins=100,
         labels={'value': '#accidental_deaths'},
-        title=f"Expected number of accidental deaths this century = {E_accidental_deaths.mean()/1e6:.1f} million",
+        title=f"Expected number of deaths from accidental pandemics this century = {E_accidental_deaths.mean()/1e6:.1f} million",
         color_discrete_sequence=[accidental_colour],
         histnorm='probability'
     )
@@ -379,6 +385,7 @@ def load_and_preprocess_deliberate_data(gtd_xls, deaths_per_attack):
     gtd_df = pd.read_excel(gtd_xls, sheet_name='Data')
     gtd_df = gtd_df[gtd_df["country_txt"] == "United States"]
     gtd_df = gtd_df[gtd_df["nkill"] >= deaths_per_attack]
+    gtd_df = gtd_df[(gtd_df["iyear"] >= 1970) & (gtd_df["iyear"] <= 2020)]
     gtd_df["short_summary"] = gtd_df["summary"].str[:100] + "..."
     return gtd_df
 
@@ -387,10 +394,13 @@ def format_intent_fraction(frac_invd_intent):
     formatted_string = f"Fraction of individuals with the intent to cause mass harm = 1 in ~{reciprocal_value/1e6:,.1f} million"
     return formatted_string
 
-def plot_deaths_per_attack_scatter(gtd_df, deaths_per_attack, num_events, frac_invd_intent):
+def plot_deaths_per_attack_scatter(gtd_df, deaths_per_attack, num_events, frac_invd_intent=None):
     """
     Plots a scatter plot of the provided data.
     """
+    title = f"Number of terrorist events in the US with ≥{deaths_per_attack} deaths (1970-2020) = {num_events}"
+    if frac_invd_intent:
+        title += f"→ \n" + format_intent_fraction(frac_invd_intent)
     fig = px.scatter(
         gtd_df,
         x="iyear",
@@ -399,7 +409,7 @@ def plot_deaths_per_attack_scatter(gtd_df, deaths_per_attack, num_events, frac_i
         hover_data=['short_summary'],
         log_y=True,
         labels={"iyear": "Year", "nkill": "Number of deaths", "attacktype1_txt": "Attack Type"},
-        title=f"Number of terrorist events in the US with ≥{deaths_per_attack} deaths (1970-2022) = {num_events} → \n" + format_intent_fraction(frac_invd_intent)
+        title=title
     )
     fig.show()
     return fig
@@ -450,7 +460,7 @@ def plot_E_deliberate_deaths_hist(E_deliberate_deaths, deliberate_colour):
         E_deliberate_deaths,
         nbins=100,
         labels={'value': '#deliberate_deaths'},
-        title=f"Expected number of deliberate deaths this century = {E_deliberate_deaths.mean()/1e6:.1f} million",
+        title=f"Expected number of deaths from deliberate pandemics this century = {E_deliberate_deaths.mean()/1e6:.1f} million",
         color_discrete_sequence=[deliberate_colour],
         histnorm='probability'
     )
