@@ -18,16 +18,20 @@ un_pop_projections = "https://www.worldometers.info/world-population/world-popul
 un_pop_us = "https://www.macrotrends.net/countries/USA/united-states/population"
 esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22"
 esvelt_2023 = "https://dam.gcsp.ch/files/doc/securing-civilisation-against-catastrophic-pandemics-gp-31"
+rethink_priorities_ccm = "https://ccm.rethinkpriorities.org/"
+open_phil_screening = "https://www.openphilanthropy.org/grants/massachusetts-institute-of-technology-media-lab-dna-synthesis-screening-methods/"
+
 # Set default template for plots
 pio.templates.default = 'plotly_white'
 
 class Parameter:
-    def __init__(self, value, description, source_link=None, source_description=None, display=True):
+    def __init__(self, value, description, source_link=None, source_description=None, display=True, units=None):
         self.val = value
         self.description = description
         self.source_link = source_link
         self.source_description = source_description
         self.display = display
+        self.units = units
 
 class Params:
     class Global:
@@ -75,6 +79,15 @@ class Params:
         undergrad_multiplier = Parameter(10, "Multiplier for the number of undergraduates relative to adapted use.", display=False)
         high_school_multiplier = Parameter(10, "Multiplier for the number of high school students relative to undergraduates.", display=False)
         us_share_of_doctorates = Parameter(1/3, "Share of US doctorates in the global context.", esvelt_2022, "Esvelt 2022", display=False)
+    
+    class Interventions:
+        give_well_cost_effectiveness = Parameter(21, "Cost effectiveness for GiveWell funding bar.", rethink_priorities_ccm, "Rethink Priorities CCM", units="DALYs/$1000")
+        cage_free_chicken_campaign_cost_effectiveness = Parameter(717, "Cost effectiveness of cage free chicken campaign.", rethink_priorities_ccm, "Rethink Priorities CCM", units="DALYs/$1000")
+        average_dalys_per_life_saved = Parameter(30, "Average DALYs per life saved. Default = (global life expectancy - global mean age) x disability weight = (70 - 30) x 0.75") 
+        
+    class DNA_Screening:
+        dna_screening_effectiveness = Parameter(90, "Effectiveness of DNA screening.", units="%")
+        dna_screening_cost = Parameter(100000000, "Cost to fully develop, implement and regulate DNA synthesis screening. Open Phil has already donated 890K to SecureDNA and 10M+ to NTI", open_phil_screening, "Open Phil grant", units="$")
 
     @classmethod
     def print_category(cls, category_name):
@@ -88,6 +101,12 @@ class Params:
         for var, param in vars(category).items():
             if not var.startswith("_") and param.display:
                 val = param.val if not isinstance(param.val, tuple) else f"{param.val[0]} - {param.val[1]}"
+                if param.units == "%":
+                    val = f"{val}%"
+                elif param.units == "$":
+                    val = f"${format_number(val)}"
+                elif param.units:
+                    val = f"{val} {param.units}"
                 source = f'(<a href="{param.source_link}">{param.source_description}</a>)' if param.source_link and param.source_description else ""
                 display(HTML(f"<strong>{var.ljust(max_var_length)}:</strong> {val} {source}<br><em>{param.description}</em><br>"))
 
@@ -322,6 +341,7 @@ def plot_P_single_pandemic_hist(P_single_pandemic, accidental_colour="#1f77b4"):
         histnorm='probability'
     )
     # Turn off the legend
+    fig.update_yaxes(title_text='Probability')
     fig.update_layout(showlegend=False)
     fig.show()
     return fig
@@ -346,6 +366,7 @@ def plot_E_accidental_pandemics_hist(E_accidental_pandemics, accidental_colour):
         histnorm='probability'
     )
     # Turn off the legend
+    fig.update_yaxes(title_text='Probability')
     fig.update_layout(showlegend=False)
     fig.show()
     return fig
@@ -370,6 +391,7 @@ def plot_E_accidental_deaths_hist(E_accidental_deaths, accidental_colour):
         histnorm='probability'
     )
     # Turn off the legend
+    fig.update_yaxes(title_text='Probability')
     fig.update_layout(showlegend=False)
     fig.show()
     return fig
@@ -464,6 +486,42 @@ def plot_E_deliberate_deaths_hist(E_deliberate_deaths, deliberate_colour):
         color_discrete_sequence=[deliberate_colour],
         histnorm='probability'
     )
+    fig.update_yaxes(title_text='Probability')
     fig.update_layout(showlegend=False)
     fig.show()
     return fig
+
+def plot_comparative_E_deliberate_deaths_hist(E_deliberate_deaths_without_screening, E_deliberate_deaths_with_screening, deliberate_colour):
+
+    lives_saved = np.mean(E_deliberate_deaths_without_screening) - np.mean(E_deliberate_deaths_with_screening)
+
+    # Create histograms for both scenarios
+    trace1 = go.Histogram(
+        x=E_deliberate_deaths_without_screening,
+        histnorm='probability',
+        name='Without Screening',
+        opacity=0.75,
+        marker=dict(color=deliberate_colour)
+    )
+    
+    trace2 = go.Histogram(
+        x=E_deliberate_deaths_with_screening,
+        histnorm='probability',
+        name='With Screening',
+        opacity=0.75,
+        marker=dict(color='green')
+    )
+    
+    # Create the layout, including a title and axis labels
+    layout = go.Layout(
+        title=f"Expected number of lives saved by DNA synthesis screening = {lives_saved/1e6:.1f} million",
+        xaxis=dict(title='Expected Number of Deaths'),
+        yaxis=dict(title='Probability'),
+        barmode='overlay'
+    )
+    
+    # Create the figure with the two histograms
+    fig = go.Figure(data=[trace1, trace2], layout=layout)
+    
+    # Display the figure
+    fig.show()
