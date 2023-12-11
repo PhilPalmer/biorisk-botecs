@@ -19,6 +19,8 @@ un_pop_us = "https://www.macrotrends.net/countries/USA/united-states/population"
 esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22"
 esvelt_2023 = "https://dam.gcsp.ch/files/doc/securing-civilisation-against-catastrophic-pandemics-gp-31"
 rethink_priorities_ccm = "https://ccm.rethinkpriorities.org/"
+nti = "https://www.nti.org/about/programs-projects/project/preventing-the-misuse-of-dna-synthesis-technology/"
+secure_dna = "https://secure-dna.up.railway.app/manuscripts/Random_Adversarial_Threshold_Screening.pdf"
 open_phil_screening = "https://www.openphilanthropy.org/grants/massachusetts-institute-of-technology-media-lab-dna-synthesis-screening-methods/"
 
 # Set default template for plots
@@ -86,7 +88,10 @@ class Params:
         average_dalys_per_life_saved = Parameter(30, "Average DALYs per life saved. Default = (global life expectancy - global mean age) x disability weight = (70 - 30) x 0.75") 
         
     class DNA_Screening:
-        dna_screening_effectiveness = Parameter(90, "Effectiveness of DNA screening.", units="%")
+        P_provider_screens = Parameter(0.8, "Probability that the DNA synthesis provider screens orders.", nti, "NTI")
+        P_no_academic_approval = Parameter(0.75, "Probability that the order does not have academic approval (assuming orders with academic approval bypass the screening).", esvelt_2023, "Gopal et al. 2023")
+        P_pathogen_in_database = Parameter(0.5, "Probability that the pathogen is listed in the screening database.")
+        P_screening_effective = Parameter(0.9996, "Probability that the screening, if conducted, successfully identifies and stops a bioterrorist attack.", secure_dna, "SecureDNA")
         dna_screening_cost = Parameter(100000000, "Cost to fully develop, implement and regulate DNA synthesis screening. Open Phil has already donated 890K to SecureDNA and 10M+ to NTI", open_phil_screening, "Open Phil grant", units="$")
 
     @classmethod
@@ -473,6 +478,14 @@ def plot_capability_growth(params, deliberate_colour, start_year=2023):
         dict(x=start_year + params.Deliberate.years_since_start.val + params.Deliberate.high_school_years.val, y=total_individuals[params.Deliberate.years_since_start.val + params.Deliberate.high_school_years.val], xref="x", yref="y", text="High School Students", showarrow=True, arrowhead=4, ax=0, ay=-140)
     ]
     fig.update_layout(title=title_text, xaxis_title="Years", yaxis_title="Number of Individuals", annotations=annotations)
+    fig.show()
+    return fig
+
+def plot_E_deliberate_deaths_over_time(E_deliberate_deaths_avg, num_years, deliberate_colour):
+    fig = go.Figure(data=[
+        go.Scatter(x=list(range(num_years)), y=E_deliberate_deaths_avg, mode='lines', name='Expected Deaths', line=dict(color=deliberate_colour))
+    ])
+    fig.update_layout(title="Expected number of deaths from deliberate pandemics over this century", xaxis_title="Years", yaxis_title="Expected Deaths")
     fig.show()
     return fig
 
