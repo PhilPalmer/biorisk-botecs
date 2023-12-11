@@ -22,6 +22,8 @@ rethink_priorities_ccm = "https://ccm.rethinkpriorities.org/"
 nti = "https://www.nti.org/about/programs-projects/project/preventing-the-misuse-of-dna-synthesis-technology/"
 secure_dna = "https://secure-dna.up.railway.app/manuscripts/Random_Adversarial_Threshold_Screening.pdf"
 open_phil_screening = "https://www.openphilanthropy.org/grants/massachusetts-institute-of-technology-media-lab-dna-synthesis-screening-methods/"
+hellewell_2020 = "https://www.thelancet.com/journals/langlo/article/PIIS2214-109X(20)30074-7"
+sharma_2023 = "https://pubmed.ncbi.nlm.nih.gov/37367195/"
 
 # Set default template for plots
 pio.templates.default = 'plotly_white'
@@ -92,7 +94,12 @@ class Params:
         P_no_academic_approval = Parameter(0.75, "Probability that the order does not have academic approval (assuming orders with academic approval bypass the screening).", esvelt_2023, "Gopal et al. 2023")
         P_pathogen_in_database = Parameter(0.5, "Probability that the pathogen is listed in the screening database.")
         P_screening_effective = Parameter(0.9996, "Probability that the screening, if conducted, successfully identifies and stops a bioterrorist attack.", secure_dna, "SecureDNA")
-        dna_screening_cost = Parameter(100000000, "Cost to fully develop, implement and regulate DNA synthesis screening. Open Phil has already donated 890K to SecureDNA and 10M+ to NTI", open_phil_screening, "Open Phil grant", units="$")
+        dna_screening_cost = Parameter(100000000, "Cost to fully develop, implement and regulate DNA synthesis screening. Open Phil has already donated 890K to SecureDNA and 10M+ to NTI", open_phil_screening, "Open Phil", units="$")
+
+    class Sequencing:
+        P_containment = Parameter(0.8, "Probability of containing an outbreak upon detection via contact tracing and isolation of cases. Assuming R0=2.5, contacts traced>=80%, transmission before symptom onset=<1% and initial cases=40.", hellewell_2020, "Hellewell et al. 2020")
+        threatnet_cost = Parameter((400000000, 800000000), "Annual cost of ThreatNet system for early detection of novel pathogens in the US.", sharma_2023, "Sharma et al. 2023")
+        us_pop_frac_global = Parameter(0.04, "Fraction of global population in the US.")
 
     @classmethod
     def print_category(cls, category_name):
