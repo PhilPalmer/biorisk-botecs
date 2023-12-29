@@ -16,6 +16,9 @@ marani_2021 = "https://www.pnas.org/doi/10.1073/pnas.2105482118"
 gtd = "https://www.start.umd.edu/gtd/"
 un_pop_projections = "https://www.worldometers.info/world-population/world-population-projections/"
 un_pop_us = "https://www.macrotrends.net/countries/USA/united-states/population"
+glennerster_2022 = "https://www.nber.org/system/files/working_papers/w30565/w30565.pdf"
+watson_2022 = "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(22)00320-6"
+blake_2023 = "https://joshuablake.co.uk/lab-leak-base-rate/lab-leak-base-rates.html"
 esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22"
 esvelt_2023 = "https://dam.gcsp.ch/files/doc/securing-civilisation-against-catastrophic-pandemics-gp-31"
 rethink_priorities_ccm = "https://ccm.rethinkpriorities.org/"
@@ -24,6 +27,13 @@ secure_dna = "https://secure-dna.up.railway.app/manuscripts/Random_Adversarial_T
 open_phil_screening = "https://www.openphilanthropy.org/grants/massachusetts-institute-of-technology-media-lab-dna-synthesis-screening-methods/"
 hellewell_2020 = "https://www.thelancet.com/journals/langlo/article/PIIS2214-109X(20)30074-7"
 sharma_2023 = "https://pubmed.ncbi.nlm.nih.gov/37367195/"
+owid_covid = "https://ourworldindata.org/covid-deaths"
+cdc_flu = "https://www.cdc.gov/flu/prevent/vaccine-selection.htm"
+who_flu = "https://www.who.int/teams/global-influenza-programme/surveillance-and-monitoring/burden-of-disease"
+cdc_ve = "https://www.cdc.gov/flu/vaccines-work/past-seasons-estimates.html"
+cdc_ve_matched = "https://www.cdc.gov/flu/vaccines-work/vaccineeffect.htm"
+# owid_flu = "https://ourworldindata.org/influenza-deaths"
+cepi_cov = "https://cepi.net/news_cepi/the-race-to-future-proof-coronavirus-vaccines/"
 
 # Set default template for plots
 pio.templates.default = 'plotly_white'
@@ -49,13 +59,15 @@ class Params:
         sigma = Parameter(0.0113, "Scale parameter for GPD.", marani_2021, "Marani 2021")
         xi = Parameter(1.40, "Shape parameter for GPD.", marani_2021, "Marani 2021")
         p0 = Parameter(0.62, "Probability that an epidemic intensity is less than μ.", marani_2021, "Marani 2021")
-        max_intensity = Parameter(100/3, "Maximum intensity of an epidemic. Default is highest credible reports of deaths for a pandemic, 100 million deaths from 1918 influenza over 3 years.")
+        max_intensity = Parameter(17.8, "Maximum intensity of an epidemic. Default is highest credible reports of deaths for a pandemic, 100 million deaths from 1918 influenza divided by population at the time and three-year duration.", glennerster_2022, "Glennerster et al. 2022")
+        vaccines_multiplier = Parameter(0.37, "Multiplier to account for the effect of vaccines reducing the expected number of deaths from epidemics. Default refers to the estimated 63% reduction in deaths in the first year of COVID-19 vaccines.", watson_2022, "Watson et al. 2022")
         colour = Parameter("#2ca02c", "Colour of the natural epidemics for plotting", display=False)
         
     class Accidental:
         P_release = Parameter(0.00246, "Probability of community release from a single facility in a single year.", klotz_2021, "Klotz 2021")
         P_seeds_pandemic = Parameter((0.05, 0.4), "Probability that a virus release seeds a pandemic.", klotz_2021, "Klotz 2021")
         num_facilities = Parameter(14, "Number of facilities. Default is the number of  Highly Pathogenic Avian Influenza (HPAI) facilities", klotz_2021, "Klotz 2021")
+        growth_rate = Parameter(0.04, "Lower-end estimate of the annual growth rate for new BSL-4 facilities.", blake_2023, "Blake 2023")
         fatality_rate = Parameter(0.025, "Case fatality rate (CFR). Default is 1918 influenza CFR", klotz_2021, "Klotz 2021")
         infection_rate = Parameter(0.15, "Infection rate of the pandemic. Default is % infected in typical flu season", klotz_2021, "Klotz 2021")
         colour = Parameter("#1f77b4", "Colour of the accidental epidemics for plotting", display=False)
@@ -70,7 +82,7 @@ class Params:
         # retrain_indv_multiplier_min = Parameter(2, "Minimum multiplier value for additional number of individuals who will retrain in virology.", esvelt_2023, "Esvelt 2023")
         # retrain_indv_multiplier_max = Parameter(4, "Maximum multiplier value for additional number of individuals who will retrain in virology.", esvelt_2023, "Esvelt 2023")
         deliberate_multiplier = Parameter((1,10), "Number of times more deaths that a deliberate pandemic would cause due to multiple pathogens and/or releases etc.")
-        num_years_until_blueprints = Parameter((0,50), "Number of years until blueprints for a pandemic capable pathogen become available.")
+        num_years_until_blueprints = Parameter((0,76*2), "Number of years until blueprints for a pandemic capable pathogen become available.")
         colour = Parameter("#ff7f0e", "Colour of the deliberate pandemics for plotting", display=False)
         # Additional parameters for capability calculations
         years_since_start = Parameter(0, "Years since the start of the timeframe considered for capability assessment.", display=False)
@@ -86,11 +98,11 @@ class Params:
     
     class Interventions:
         give_well_cost_effectiveness = Parameter(21, "Cost effectiveness for GiveWell funding bar.", rethink_priorities_ccm, "Rethink Priorities CCM", units="DALYs/$1000")
-        cage_free_chicken_campaign_cost_effectiveness = Parameter(717, "Cost effectiveness of cage free chicken campaign.", rethink_priorities_ccm, "Rethink Priorities CCM", units="DALYs/$1000")
+        cage_free_chicken_campaign_cost_effectiveness = Parameter(717, "Cost effectiveness of cage free chicken campaigns.", rethink_priorities_ccm, "Rethink Priorities CCM", units="DALYs/$1000")
         average_dalys_per_life_saved = Parameter(30, "Average DALYs per life saved. Default = (global life expectancy - global mean age) x disability weight = (70 - 30) x 0.75") 
         
     class DNA_Screening:
-        P_provider_screens = Parameter(0.8, "Probability that the DNA synthesis provider screens orders.", nti, "NTI")
+        P_no_benchtop = Parameter(0.8, "Probability that benchtop DNA synthesis machines are not used to bypass the screening.")
         P_no_academic_approval = Parameter(0.75, "Probability that the order does not have academic approval (assuming orders with academic approval bypass the screening).", esvelt_2023, "Gopal et al. 2023")
         P_pathogen_in_database = Parameter(0.5, "Probability that the pathogen is listed in the screening database.")
         P_screening_effective = Parameter(0.9996, "Probability that the screening, if conducted, successfully identifies and stops a bioterrorist attack.", secure_dna, "SecureDNA")
@@ -100,6 +112,16 @@ class Params:
         P_containment = Parameter(0.8, "Probability of containing an outbreak upon detection via contact tracing and isolation of cases. Assuming R0=2.5, contacts traced>=80%, transmission before symptom onset=<1% and initial cases=40.", hellewell_2020, "Hellewell et al. 2020")
         threatnet_cost = Parameter((400000000, 800000000), "Annual cost of ThreatNet system for early detection of novel pathogens in the US.", sharma_2023, "Sharma et al. 2023")
         us_pop_frac_global = Parameter(0.04, "Fraction of global population in the US.")
+
+    class Broad_Vaccines:
+        additional_vaccine_years = Parameter(5, "Number of years earlier that a broad-spectrum vaccine is developed as a result of increased funding.")
+        covid_excess_deaths = Parameter(28370000, "Excess deaths due to COVID-19 as of 2024.", owid_covid, "Our World in Data")
+        time_to_update_vaccine = Parameter((0.5,1), "Time to update vaccine.", cdc_flu, "CDC", units="years")
+        current_flu_vaccine_effectiveness = Parameter((0.19,0.6), "Influenza vaccine effectiveness in the US from 2004 to 2023.", cdc_ve, "CDC")
+        broad_vaccine_effectiveness = Parameter((0.4,0.6), "Effectiveness of current flu vaccines when antigenically matched.", cdc_ve_matched, "CDC")
+        annual_global_flu_deaths = Parameter((290000, 650000), "Annual global flu deaths.", who_flu, "WHO")
+        broad_cov_research_funding = Parameter(200000000, "Current funding for broadly protective coronavirus vaccine portfolio.", cepi_cov, "CEPI", units="$")
+        dalys_lost_per_seasonal_flu_death = Parameter(2, "Rough estimate for DALYs lost per death from seasonal influenza.")
 
     @classmethod
     def print_category(cls, category_name):
@@ -175,6 +197,9 @@ def load_and_preprocess_natural_data(marani_xls):
     filtered_data = filtered_data.sort_values(by="Intensity (deaths per mil/year)", ascending=True)
     filtered_data["Exceedance Probability"] = 1 - np.arange(len(filtered_data)) / len(filtered_data) 
     # = 1 - filtered_data['Rank'] / len(filtered_data)
+
+    # Rename the units for the intensity column - I think it's supposed to be deaths per thousand
+    filtered_data.rename(columns={'Intensity (deaths per mil/year)': 'Intensity (deaths per thousand/year)'}, inplace=True)
 
     # Add a column for the duration of the outbreak
     filtered_data["Duration"] = filtered_data["End Year"] - filtered_data["Start Year"] + 1
@@ -268,7 +293,7 @@ def plot_exceedance_probability(
         intensities=None,
         gpd_values=None,
         marani_df=None,
-        x="Intensity (deaths per mil/year)",
+        x="Intensity (deaths per thousand/year)",
         title_text="Exceedance frequency of epidemic intensity",
         hover_data_columns=['Location', 'Start Year', 'End Year', '# deaths (thousands)'],
         plot_gpd=True,
@@ -318,7 +343,7 @@ def plot_exceedance_probability(
     # Update titles and axes
     fig.update_layout(
         title=title_text,
-        xaxis_title="Intensity (deaths per mil/year)",
+        xaxis_title="Intensity (deaths per thousand/year)",
         yaxis_title="Exceedance Probability",
         legend_title="Disease",
     )
@@ -488,9 +513,9 @@ def plot_capability_growth(params, deliberate_colour, start_year=2023):
     fig.show()
     return fig
 
-def plot_E_deliberate_deaths_over_time(E_deliberate_deaths_avg, num_years, deliberate_colour):
+def plot_E_deliberate_deaths_over_time(E_deliberate_deaths_avg, num_years, deliberate_colour, start_year=2023):
     fig = go.Figure(data=[
-        go.Scatter(x=list(range(num_years)), y=E_deliberate_deaths_avg, mode='lines', name='Expected Deaths', line=dict(color=deliberate_colour))
+        go.Scatter(x=list(range(start_year, start_year + num_years)), y=E_deliberate_deaths_avg, mode='lines', name='Expected Deaths', line=dict(color=deliberate_colour))
     ])
     fig.update_layout(title="Expected number of deaths from deliberate pandemics over this century", xaxis_title="Years", yaxis_title="Expected Deaths")
     fig.show()
@@ -545,3 +570,65 @@ def plot_comparative_E_deliberate_deaths_hist(E_deliberate_deaths_without_screen
     
     # Display the figure
     fig.show()
+
+###############
+# Interventions
+###############
+
+def estimate_deaths_vectorized(ve_array, base_deaths=650000, min_deaths=290000):
+    """
+    Estimates annual deaths based on an array of vaccine effectiveness values.
+
+    :param ve_array: Numpy array of Vaccine Effectiveness values (ranging from 0 to 1).
+    :param base_deaths: The number of deaths at the lowest VE (default 600,000).
+    :param min_deaths: The minimum possible number of deaths (default 300,000).
+    :return: Numpy array of estimated annual deaths corresponding to each VE.
+    """
+    if np.any((ve_array < 0) | (ve_array > 1)):
+        raise ValueError("Vaccine effectiveness values must be between 0 and 1.")
+
+    # Linear inverse proportion for each VE value
+    deaths_array = base_deaths * (1 - ve_array) + min_deaths * ve_array
+
+    return deaths_array.astype(int)
+
+def plot_lives_saved_comparison(lives_saved_seasonal, lives_saved_pandemic):
+    """
+    Plots a comparison of lives saved due to seasonal and pandemic vaccines.
+
+    :param lives_saved_seasonal: Numpy array of lives saved by seasonal vaccines.
+    :param lives_saved_pandemic: Numpy array of lives saved by pandemic vaccines.
+    """
+
+    # Calculate the total lives saved
+    total_lives_saved = np.mean(lives_saved_seasonal) + np.mean(lives_saved_pandemic)
+
+    # Create histograms for both scenarios
+    trace1 = go.Histogram(
+        x=lives_saved_seasonal,
+        histnorm='probability',
+        name='Seasonal Influenza',
+        opacity=0.75,
+    )
+    
+    trace2 = go.Histogram(
+        x=lives_saved_pandemic,
+        histnorm='probability',
+        name='Pandemic Coronavirus and Influenza',
+        opacity=0.75,
+    )
+    
+    # Create the layout, including a title and axis labels
+    layout = go.Layout(
+        title=f"Total lives saved by pan-coronavirus and pan-influenza vaccines = {total_lives_saved/1e6:.1f} million",
+        xaxis=dict(title='Lives Saved'),
+        yaxis=dict(title='Probability'),
+        barmode='overlay'
+    )
+    
+    # Create the figure with the two histograms
+    fig = go.Figure(data=[trace1, trace2], layout=layout)
+    
+    # Display the figure
+    fig.show()
+    return fig
