@@ -18,7 +18,7 @@ un_pop_projections = "https://www.worldometers.info/world-population/world-popul
 un_pop_us = "https://www.macrotrends.net/countries/USA/united-states/population"
 glennerster_2022 = "https://www.nber.org/system/files/working_papers/w30565/w30565.pdf"
 watson_2022 = "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(22)00320-6"
-blake_2023 = "https://joshuablake.co.uk/lab-leak-base-rate/lab-leak-base-rates.html"
+blake_2024 = "https://blog.joshuablake.co.uk/p/forecasting-accidentally-caused-pandemics?r=11048"
 esvelt_2022 = "https://dam.gcsp.ch/files/doc/gcsp-geneva-paper-29-22"
 esvelt_2023 = "https://dam.gcsp.ch/files/doc/securing-civilisation-against-catastrophic-pandemics-gp-31"
 rethink_priorities_ccm = "https://ccm.rethinkpriorities.org/"
@@ -67,7 +67,7 @@ class Params:
         P_release = Parameter(0.00246, "Probability of community release from a single facility in a single year.", klotz_2021, "Klotz 2021")
         P_seeds_pandemic = Parameter((0.05, 0.4), "Probability that a virus release seeds a pandemic.", klotz_2021, "Klotz 2021")
         num_facilities = Parameter(14, "Number of facilities. Default is the number of  Highly Pathogenic Avian Influenza (HPAI) facilities", klotz_2021, "Klotz 2021")
-        growth_rate = Parameter(0.04, "Lower-end estimate of the annual growth rate for new BSL-4 facilities.", blake_2023, "Blake 2023")
+        growth_rate = Parameter(0.025, "Estimate of the annual growth rate for new BSL-4 facilities.", blake_2024, "Blake 2024")
         fatality_rate = Parameter(0.025, "Case fatality rate (CFR). Default is 1918 influenza CFR", klotz_2021, "Klotz 2021")
         infection_rate = Parameter(0.15, "Infection rate of the pandemic. Default is % infected in typical flu season", klotz_2021, "Klotz 2021")
         colour = Parameter("#1f77b4", "Colour of the accidental epidemics for plotting", display=False)
