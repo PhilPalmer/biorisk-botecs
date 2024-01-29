@@ -1,6 +1,13 @@
-# Biorisk BOTECs [![NBViewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.org/github/PhilPalmer/biorisk-botecs/blob/output/biorisk-botecs.ipynb)
+<div align="center">    
+ 
+# Biorisk BOTECs   
 
-This repository contains a Jupyter notebook and associated code for back-of-the-envelope calculations (BOTECs) assessing different pandemic risks. A rendered version of the notebook can viewed on [NBViewer](https://nbviewer.org/github/PhilPalmer/biorisk-botecs/blob/output/biorisk-botecs.ipynb).
+[![PyPI - Python Version](https://img.shields.io/badge/python-3.7%2B-blue)](https://github.com/PhilPalmer/biorisk-botecs)
+[![NBViewer](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.org/github/PhilPalmer/biorisk-botecs/blob/output/biorisk-botecs.ipynb)
+ 
+</div>
+
+This repository contains a Jupyter notebook and associated code for **back-of-the-envelope calculations (BOTECs) assessing different pandemic risks**. A rendered version of the notebook can viewed on [NBViewer](https://nbviewer.org/github/PhilPalmer/biorisk-botecs/blob/output/biorisk-botecs.ipynb).
 
 ## Setup
 
