@@ -313,7 +313,7 @@ def plot_exceedance_probability(
         sorted_data = marani_df.sort_values(by=x, ascending=True)
         exceedance_probs = 1 - np.arange(len(sorted_data)) / len(sorted_data)
         # Determine order of diseases by their total deaths
-        disease_order = sorted_data.groupby("disease (total deaths)").max()["# deaths (thousands)"].sort_values(ascending=False).index.tolist()
+        disease_order = sorted_data.groupby("disease (total deaths)").max('disease_total_deaths')["# deaths (thousands)"].sort_values(ascending=False).index.tolist()
         
         fig = px.scatter(sorted_data, 
                          x=x, 
