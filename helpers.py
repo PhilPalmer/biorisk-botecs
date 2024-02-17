@@ -9,6 +9,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 from scipy.stats import genpareto, lognorm
+import scipy.stats as stats
+import math
 
 # Define URLs for sources
 klotz_2021 = "https://armscontrolcenter.org/wp-content/uploads/2017/04/LWC-paper-final-version-for-CACNP-website.pdf"
@@ -289,6 +291,27 @@ def compute_lognorm(marani_df, x, intensities):
     lognorm_values = 1 - lognorm.cdf(intensities, s=s, loc=loc_ln, scale=scale_ln)
     return lognorm_values
 
+def wilson_score_interval(x, n, confidence=0.95):
+    """
+    Calculate the Wilson score interval for a binomial proportion.
+
+    Parameters:
+        x (int): Number of successes.
+        n (int): Sample size.
+        confidence (float): Confidence level (default is 0.95 for 95% confidence).
+
+    Returns:
+        tuple: Lower and upper bounds of the confidence interval.
+    """
+    z = stats.norm.ppf(1 - (1 - confidence) / 2)
+    p_hat = x / n
+    lower_bound = (p_hat + (z**2) / (2 * n) - z * math.sqrt((p_hat * (1 - p_hat) + (z**2) / (4 * n)) / n)) / (1 + (z**2) / n)
+    upper_bound = (p_hat + (z**2) / (2 * n) + z * math.sqrt((p_hat * (1 - p_hat) + (z**2) / (4 * n)) / n)) / (1 + (z**2) / n)
+    return lower_bound, upper_bound
+
+# vectorize the function to apply it to numpy arrays
+wilson_score_interval = np.vectorize(wilson_score_interval)
+
 def plot_exceedance_probability(
         intensities=None,
         gpd_values=None,
@@ -298,10 +321,12 @@ def plot_exceedance_probability(
         hover_data_columns=['Location', 'Start Year', 'End Year', '# deaths (thousands)'],
         plot_gpd=True,
         plot_lognorm=True,
+        plot_CI = True,
         log_axis=True,
         mu=1.000e-3,  # threshold for GPD
         sigma=0.0113,  # scale parameter from the paper
         xi=1.40,  # shape parameter from the paper
+        confident_level=0.95, # 95% confidence interval
         colour="#2ca02c"
     ):
     """
@@ -321,7 +346,7 @@ def plot_exceedance_probability(
                          color="disease (total deaths)", 
                          log_x=True, 
                          log_y=True,
-                         hover_data=hover_data_columns,
+                         hover_data=hover_data_columns, 
                          category_orders={"disease (total deaths)": disease_order}
                         )
     else:
@@ -331,7 +356,7 @@ def plot_exceedance_probability(
     if intensities is None:
         intensities = np.linspace(marani_df[x].min(), marani_df[x].max(), 1000) if marani_df is not None else np.linspace(0, 0.01, 1000)
     if gpd_values is None:
-        gpd_values = compute_gpd(intensities, mu, sigma, xi)
+        gpd_values = compute_gpd(intensities, mu, sigma, xi) 
     if plot_gpd:
         fig.add_trace(go.Scatter(x=intensities, y=gpd_values, mode='lines', name='GPD Fit', line=dict(color=colour)))
 
@@ -339,6 +364,14 @@ def plot_exceedance_probability(
     if marani_df is not None and plot_lognorm:
         lognorm_values = compute_lognorm(marani_df, x, intensities)
         fig.add_trace(go.Scatter(x=intensities, y=lognorm_values, mode='lines', name='Log-normal Fit', line=dict(color="red")))
+
+    # Plot 95% confidence intervals using the Wilson score interval
+    if marani_df is not None and plot_CI:
+        n = len(sorted_data)
+        exceedance_probs = 1 - np.arange(n) / n
+        lowers, uppers = wilson_score_interval(exceedance_probs * n, n, confidence = confident_level)
+        fig.add_trace(go.Scatter(x=sorted_data[x], y=lowers, name='95% CI Lower Bound', line=dict(color="gray", dash="dash")))
+        fig.add_trace(go.Scatter(x=sorted_data[x], y=uppers, name='95% CI Upper Bound', line=dict(color="gray", dash="dash")))
 
     # Update titles and axes
     fig.update_layout(
