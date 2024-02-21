@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # temporary notebook file
-tmp.ipynb
+tmp*.ipynb

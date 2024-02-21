@@ -11,6 +11,7 @@ import pandas as pd
 import scipy.stats as stats
 from scipy.stats import genpareto
 from scipy.optimize import minimize
+from scipy.stats import multivariate_normal as mvn
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import plotly.express as px
@@ -33,6 +34,9 @@ def find_gpd_mle(data, threshold = 0.001, find_std = True, return_nll = True):
     result = minimize(neg_log_likelihood, initial_guess, args=(data,), method='Nelder-Mead')
     minimized_nll = result.fun
     scale_mle, shape_mle = result.x
+    # Check if the optimization was successful
+    if not result.success:
+        raise ValueError('MLE optimization failed: ' + result.message)
 
     if find_std:
         # Find standard errors
@@ -59,6 +63,7 @@ def find_gpd_mle(data, threshold = 0.001, find_std = True, return_nll = True):
         # Compute standard errors
         covariance_matrix = np.linalg.inv(hess)
         scale_se, shape_se = np.sqrt(np.diagonal(covariance_matrix))
+        
         if return_nll:
             return covariance_matrix, scale_mle, shape_mle, scale_se, shape_se, minimized_nll
         else:
@@ -99,10 +104,13 @@ def goodness_of_fit(observed, expected, method = 'chi2', nbins = 20, log_scale =
     else:
         raise ValueError('method should be either "chi2" or "ks" or "AD"')
     
-def find_gpd_bounds(x, data, scale_mle, shape_mle, scale_se, shape_se, n_simulations = 1000, n_bootstrap = 1000):
+def find_gpd_bounds(x, data, scale_mle, shape_mle, scale_se, shape_se, covariance_matrix, n_simulations = 5000, n_bootstrap = 1000):
     """
     Function to find the lower and upper bounds within 95% confidence intervals for the GPD model
     """
+    # Define the GPD distribution
+    dist = mvn( mean=[scale_mle,shape_se], cov=covariance_matrix )
+
     # intervals to generate the bounds
     scale_lower = scale_mle - 1.96 * scale_se 
     scale_upper = scale_mle + 1.96 * scale_se
@@ -125,13 +133,13 @@ def find_gpd_bounds(x, data, scale_mle, shape_mle, scale_se, shape_se, n_simulat
             continue
 
         gpd_vals = genpareto.pdf(intensities, shape_samples, loc=0.001, scale=scale_samples)
-        if np.max(gpd_vals - gdp_mle) > distance_above:
-            distance_above = np.max(gpd_vals - gdp_mle)
+        if np.max(gpd_vals - gpd_mle) > distance_above:
+            distance_above = np.max(gpd_vals - gpd_mle)
             scale_above = scale_samples
             shape_above = shape_samples
 
-        if np.max(gdp_mle - gpd_vals) > distance_below:
-            distance_below = np.max(gdp_mle - gpd_vals)
+        if np.max(gpd_mle - gpd_vals) > distance_below:
+            distance_below = np.max(gpd_mle - gpd_vals)
             scale_below = scale_samples
             shape_below = shape_samples
 
