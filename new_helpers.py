@@ -2,20 +2,12 @@
 # New helper functions (before merge into main helpers.py)
 #########################
 
-# will contain mle estimation for the parameters of the gpd model
-# will contain goodness of fit tests for the gpd model
-# will contain simulations to find lower and upper bounds for gdp lines for further integration
-
 import numpy as np
-import pandas as pd
 import scipy.stats as stats
 from scipy.stats import genpareto
 from scipy.optimize import minimize
 from scipy.stats import multivariate_normal as mvn
-import statsmodels.api as sm
-import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
+
 
 def find_gpd_mle(data, threshold = 0.001, find_std = True, return_nll = True):
     """
@@ -145,27 +137,27 @@ def find_gpd_bounds(x, data, scale_mle, shape_mle, scale_se, shape_se, covarianc
 
     return scale_above, scale_below, shape_above, shape_below
 
-def plot_gpd_bounds(x, y, data, scale_mle, shape_mle, scale_above, scale_below, shape_above, shape_below):
-    """
-    Function to plot the GPD model with the lower and upper bounds
-    """
-    intensities = np.linspace(data[x].min(), data[x].max(), 1000)
-    gpd_mle = genpareto.pdf(intensities, shape_mle, loc=0.001, scale=scale_mle)
-    gpd_above = genpareto.pdf(intensities, shape_above, loc=0.001, scale=scale_above)
-    gpd_below = genpareto.pdf(intensities, shape_below, loc=0.001, scale=scale_below)
+# def plot_gpd_bounds(x, y, data, scale_mle, shape_mle, scale_above, scale_below, shape_above, shape_below):
+#     """
+#     Function to plot the GPD model with the lower and upper bounds
+#     """
+#     intensities = np.linspace(data[x].min(), data[x].max(), 1000)
+#     gpd_mle = genpareto.pdf(intensities, shape_mle, loc=0.001, scale=scale_mle)
+#     gpd_above = genpareto.pdf(intensities, shape_above, loc=0.001, scale=scale_above)
+#     gpd_below = genpareto.pdf(intensities, shape_below, loc=0.001, scale=scale_below)
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data[x], y=data[y], mode='markers', name='Data', marker=dict(size=8, color='gray', opacity=0.5)))
-    fig.add_trace(go.Scatter(x=data[x], y=gpd_mle*0.62, 
-                            mode='lines', name='GPD model', line=dict(color='black', width=2)))    
-    fig.add_trace(go.Scatter(x=data[x], y=gpd_above*0.62, 
-                            mode='lines', name='95% CI above', line=dict(color='blue', width=2, dash='dash')))
-    fig.add_trace(go.Scatter(x=data[x], y=gpd_below*0.62, 
-                            mode='lines', name='95% CI below', line=dict(color='green', width=2, dash='dash')))
-    fig.update_layout(title='95% Confidence Region for GPD Parameters',
-                    xaxis_title='Intensity (deaths per thousand/year)',
-                    yaxis_title='Exceedance Probability',
-                    xaxis_type="log",
-                    yaxis_type="log")
-    fig.show()
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=data[x], y=data[y], mode='markers', name='Data', marker=dict(size=8, color='gray', opacity=0.5)))
+#     fig.add_trace(go.Scatter(x=data[x], y=gpd_mle*0.62, 
+#                             mode='lines', name='GPD model', line=dict(color='black', width=2)))    
+#     fig.add_trace(go.Scatter(x=data[x], y=gpd_above*0.62, 
+#                             mode='lines', name='95% CI above', line=dict(color='blue', width=2, dash='dash')))
+#     fig.add_trace(go.Scatter(x=data[x], y=gpd_below*0.62, 
+#                             mode='lines', name='95% CI below', line=dict(color='green', width=2, dash='dash')))
+#     fig.update_layout(title='95% Confidence Region for GPD Parameters',
+#                     xaxis_title='Intensity (deaths per thousand/year)',
+#                     yaxis_title='Exceedance Probability',
+#                     xaxis_type="log",
+#                     yaxis_type="log")
+#     fig.show()
 
