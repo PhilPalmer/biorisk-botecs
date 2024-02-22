@@ -113,51 +113,29 @@ def find_gpd_bounds(x, data, scale_mle, shape_mle, scale_se, shape_se, covarianc
     distance_above = 0
     distance_below = 0
     
+    intensities = np.linspace(np.min(data[x]), np.max(data[x]), n_bootstrap)
     # find the pdf of the mle gpd
-    intensities = np.linspace(data[x].min(), data[x].max(), n_bootstrap)
     gpd_mle = genpareto.pdf(intensities, shape_mle, loc=0.001, scale=scale_mle)
 
-    for simulation in range(n_simulations):
+    for _ in range(n_simulations):
         scale_samples = np.random.uniform(scale_lower, scale_upper)
         shape_samples = np.random.uniform(shape_lower, shape_upper)
         # discard if the cdf is less than 0.025 or greater than 0.975
         if dist.cdf([scale_samples, shape_samples]) < 0.025 or dist.cdf([scale_samples, shape_samples]) > 0.975:
             continue
+        else:
+            gpd_vals = genpareto.pdf(intensities, shape_samples, loc=0.001, scale=scale_samples)
 
-        gpd_vals = genpareto.pdf(intensities, shape_samples, loc=0.001, scale=scale_samples)
-        if np.max(gpd_vals - gpd_mle) > distance_above:
-            distance_above = np.max(gpd_vals - gpd_mle)
-            scale_above = scale_samples
-            shape_above = shape_samples
-
-        if np.max(gpd_mle - gpd_vals) > distance_below:
-            distance_below = np.max(gpd_mle - gpd_vals)
-            scale_below = scale_samples
-            shape_below = shape_samples
+            # find the furthest line above and below the mle gpd
+            if np.max(gpd_vals - gpd_mle) > distance_above:
+                distance_above = np.max(gpd_vals - gpd_mle)
+                scale_above = scale_samples
+                shape_above = shape_samples
+            elif np.max(gpd_mle - gpd_vals) > distance_below:
+                distance_below = np.max(gpd_mle - gpd_vals)
+                scale_below = scale_samples
+                shape_below = shape_samples
+            else:
+                continue
 
     return scale_above, scale_below, shape_above, shape_below
-
-# def plot_gpd_bounds(x, y, data, scale_mle, shape_mle, scale_above, scale_below, shape_above, shape_below):
-#     """
-#     Function to plot the GPD model with the lower and upper bounds
-#     """
-#     intensities = np.linspace(data[x].min(), data[x].max(), 1000)
-#     gpd_mle = genpareto.pdf(intensities, shape_mle, loc=0.001, scale=scale_mle)
-#     gpd_above = genpareto.pdf(intensities, shape_above, loc=0.001, scale=scale_above)
-#     gpd_below = genpareto.pdf(intensities, shape_below, loc=0.001, scale=scale_below)
-
-#     fig = go.Figure()
-#     fig.add_trace(go.Scatter(x=data[x], y=data[y], mode='markers', name='Data', marker=dict(size=8, color='gray', opacity=0.5)))
-#     fig.add_trace(go.Scatter(x=data[x], y=gpd_mle*0.62, 
-#                             mode='lines', name='GPD model', line=dict(color='black', width=2)))    
-#     fig.add_trace(go.Scatter(x=data[x], y=gpd_above*0.62, 
-#                             mode='lines', name='95% CI above', line=dict(color='blue', width=2, dash='dash')))
-#     fig.add_trace(go.Scatter(x=data[x], y=gpd_below*0.62, 
-#                             mode='lines', name='95% CI below', line=dict(color='green', width=2, dash='dash')))
-#     fig.update_layout(title='95% Confidence Region for GPD Parameters',
-#                     xaxis_title='Intensity (deaths per thousand/year)',
-#                     yaxis_title='Exceedance Probability',
-#                     xaxis_type="log",
-#                     yaxis_type="log")
-#     fig.show()
-
