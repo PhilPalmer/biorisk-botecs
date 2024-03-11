@@ -36,6 +36,7 @@ cdc_ve = "https://www.cdc.gov/flu/vaccines-work/past-seasons-estimates.html"
 cdc_ve_matched = "https://www.cdc.gov/flu/vaccines-work/vaccineeffect.htm"
 # owid_flu = "https://ourworldindata.org/influenza-deaths"
 cepi_cov = "https://cepi.net/news_cepi/the-race-to-future-proof-coronavirus-vaccines/"
+gopal_2023 = "https://dam.gcsp.ch/files/doc/securing-civilisation-against-catastrophic-pandemics-gp-31"
 
 # Set default template for plots
 pio.templates.default = 'plotly_white'
@@ -73,6 +74,7 @@ class Params:
         fatality_rate = Parameter(0.025, "Case fatality rate (CFR). Default is 1918 influenza CFR", klotz_2021, "Klotz 2021")
         infection_rate = Parameter(0.15, "Infection rate of the pandemic. Default is % infected in typical flu season", klotz_2021, "Klotz 2021")
         colour = Parameter("#1f77b4", "Colour of the accidental epidemics for plotting", display=False)
+        P_seed_bioweapon = Parameter((0.0062, 0.079), "Probability that a single bioweapon programme seeds a pandemic.", gopal_2023, "Gopal 2023")
     
     class Deliberate:
         dataset = Parameter("data/globalterrorismdb_0522dist.xlsx", "Path of the Global Terrorism Database (GTD) file.", gtd, "GTD")
